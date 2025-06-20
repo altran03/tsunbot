@@ -7,9 +7,10 @@
    npm install
    ```
 
-2. Create a `.env` file in this directory with your Anthropic API key:
+2. Create a `.env` file in this directory with your API keys:
    ```env
    ANTHROPIC_API_KEY=your-anthropic-api-key-here
+   ELEVENLABS_API_KEY=your-elevenlabs-api-key-here
    ```
 
 3. Start the server:

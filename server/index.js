@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 import rateLimit from 'express-rate-limit';
+import { ElevenLabsClient } from 'elevenlabs-node';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(cors());
 app.use(express.json());
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
 
 app.post('/api/tsunderize', limiter, async (req, res) => {
   const { text } = req.body;
@@ -40,6 +42,27 @@ app.post('/api/tsunderize', limiter, async (req, res) => {
   } catch (error) {
     console.error('Anthropic API error:', error);
     res.status(500).json({ error: 'Error generating tsundere response' });
+  }
+});
+
+app.post('/api/tts', limiter, async (req, res) => {
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'No text provided' });
+  }
+  try {
+    const audioStream = await elevenlabs.generate({
+      voice: 'Mimi', // A good voice for this style. ID: zrT5Xy5iH_xZ2c4hMXdD
+      text,
+      model_id: 'eleven_multilingual_v2'
+    });
+    
+    res.setHeader('Content-Type', 'audio/mpeg');
+    audioStream.pipe(res);
+
+  } catch (error) {
+    console.error('ElevenLabs API error:', error);
+    res.status(500).json({ error: 'Error generating audio' });
   }
 });
 
