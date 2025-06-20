@@ -7,9 +7,9 @@
    npm install
    ```
 
-2. Create a `.env` file in this directory with your OpenAI API key:
+2. Create a `.env` file in this directory with your Anthropic API key:
    ```env
-   OPENAI_API_KEY=your-openai-api-key-here
+   ANTHROPIC_API_KEY=your-anthropic-api-key-here
    ```
 
 3. Start the server:

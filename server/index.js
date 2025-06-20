@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { OpenAI } from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import rateLimit from 'express-rate-limit';
 
 dotenv.config();
@@ -20,7 +20,7 @@ const limiter = rateLimit({
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 app.post('/api/tsunderize', limiter, async (req, res) => {
   const { text } = req.body;
@@ -28,19 +28,18 @@ app.post('/api/tsunderize', limiter, async (req, res) => {
     return res.status(400).json({ error: 'No text provided' });
   }
   try {
-    const prompt = `Rewrite the following message as if you are a tsundere anime girl. Be playful, a bit embarrassed, and use typical tsundere speech patterns.\n\nOriginal: ${text}\n\nTsundere:`;
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'You are a tsundere anime girl.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 100
+    const msg = await anthropic.messages.create({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 150,
+      system: "You are a tsundere anime girl. Rewrite the user's message into a playful, slightly embarrassed, and classic tsundere response. Use tsundere speech patterns, like ending sentences with '...baka!' or 'it's not like I did it for you or anything'.",
+      messages: [{ role: "user", content: text }]
     });
-    const tsundereText = completion.choices[0].message.content.trim();
+
+    const tsundereText = msg.content[0].text;
     res.json({ tsundere: tsundereText });
   } catch (error) {
-    res.status(500).json({ error: error.message || 'Error generating tsundere response' });
+    console.error('Anthropic API error:', error);
+    res.status(500).json({ error: 'Error generating tsundere response' });
   }
 });
 
