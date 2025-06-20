@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 import rateLimit from 'express-rate-limit';
-import { ElevenLabsClient } from 'elevenlabs';
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 
 dotenv.config();
 
@@ -21,6 +21,9 @@ const limiter = rateLimit({
 app.use(cors());
 app.use(express.json());
 
+// Trust the first proxy hop (e.g., the React dev server)
+app.set('trust proxy', 1);
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
 
@@ -33,7 +36,7 @@ app.post('/api/tsunderize', limiter, async (req, res) => {
     const msg = await anthropic.messages.create({
       model: "claude-3-haiku-20240307",
       max_tokens: 150,
-      system: "You are a tsundere anime girl. Rewrite the user's message into a playful, slightly embarrassed, and classic tsundere response. Use tsundere speech patterns, like ending sentences with '...baka!' or 'it's not like I did it for you or anything'.",
+      system: "You are a tsundere anime girl. Rewrite the user's message into a playful, slightly embarrassed, and classic tsundere response. Use tsundere speech patterns, like ending sentences with '...baka!' or 'it's not like I did it for you or anything'. Keep the response under 30 words.",
       messages: [{ role: "user", content: text }]
     });
 
@@ -51,18 +54,35 @@ app.post('/api/tts', limiter, async (req, res) => {
     return res.status(400).json({ error: 'No text provided' });
   }
   try {
-    const audioStream = await elevenlabs.generate({
-      voice: 'Mimi', // A good voice for this style. ID: zrT5Xy5iH_xZ2c4hMXdD
-      text,
-      model_id: 'eleven_multilingual_v2'
-    });
+    // Clean the text for better TTS performance
+    const cleanedText = text
+      .replace(/\*.*?\*/g, '')      // Remove actions like *blushes*
+      .replace(/[a-zA-Z]-/g, '')      // Remove stutters like "W-what"
+      .replace(/[?!]+…/g, '.')       // Replace ?! and ... with a period
+      .replace(/[.]{2,}/g, '.')        // Replace multiple periods with a single one
+      .replace(/[^a-zA-Z0-9\s.,'!?]/g, '') // Remove any remaining non-standard characters
+      .trim();
+
+    console.log("Sending to ElevenLabs:", cleanedText);
+
+    const audioStream = await elevenlabs.textToSpeech.stream(
+      'T7eLpgAAhoXHlrNajG8v', // Gracie's Voice ID
+      {
+        text: cleanedText,
+        model_id: 'eleven_multilingual_v2'
+      }
+    );
     
     res.setHeader('Content-Type', 'audio/mpeg');
-    audioStream.pipe(res);
+
+    for await (const chunk of audioStream) {
+      res.write(chunk);
+    }
+    res.end();
 
   } catch (error) {
     console.error('ElevenLabs API error:', error);
-    res.status(500).json({ error: 'Error generating audio' });
+    res.status(500).json({ error: error.message || 'Error generating audio' });
   }
 });
 

@@ -47,7 +47,8 @@ function App() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to generate audio');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to generate audio');
       }
 
       const blob = await res.blob();
@@ -56,48 +57,37 @@ function App() {
       audio.play();
 
     } catch (err) {
-      setError('Could not play audio. Please try again.');
+      setError(err.message || 'Could not play audio. Please try again.');
     }
     setAudioLoading(false);
   };
 
   return (
     <div className="App">
-      <div className="window">
-        <div className="title-bar">
-          <div className="traffic-lights">
-            <div className="light red"></div>
-            <div className="light yellow"></div>
-            <div className="light green"></div>
+      <h1>Tsunderizer 💢</h1>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="What do you want to say... baka?"
+          disabled={loading}
+        />
+        <button type="submit" disabled={loading || !input}>
+          {loading ? 'Tsunderizing...' : 'Tsunderize!'}
+        </button>
+      </form>
+      {error && <p className="error">{error}</p>}
+      {response && (
+        <div className="response-area">
+          <div className="response-box">
+            {response}
           </div>
+          <button onClick={handleSpeak} disabled={audioLoading}>
+            {audioLoading ? '...' : '🔊'} Read Aloud
+          </button>
         </div>
-        <div className="content">
-          <h1>Tsunderizer 💢</h1>
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="What do you want to say... baka?"
-              disabled={loading}
-            />
-            <button type="submit" disabled={loading || !input}>
-              {loading ? 'Tsunderizing...' : 'Tsunderize!'}
-            </button>
-          </form>
-          {error && <p className="error">{error}</p>}
-          {response && (
-            <div className="response-area">
-              <div className="response-box">
-                {response}
-              </div>
-              <button onClick={handleSpeak} disabled={audioLoading}>
-                {audioLoading ? '...' : '🔊'} Read Aloud
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
