@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 import rateLimit from 'express-rate-limit';
-import { ElevenLabsClient } from 'elevenlabs-node';
+import { ElevenLabsClient } from 'elevenlabs';
 
 dotenv.config();
 
